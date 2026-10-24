@@ -1,15 +1,13 @@
-#include <iostream>
 #include "Time.hpp"
 #include "Customer.hpp"
-#include <string>
+#include "Date.hpp"
 
 
-int main(void) {
-	printf("Restaurant Reservation System\n");
+int main() {
+    Date test("23.09.2026");
+    Weekday day = test.GetWeekday();
 
-	Time time1("1:2");
+    std::cout << (int)day;
 
-	std::cout << time1 << std::endl;
-
-	return 1;
+    return 0;
 }

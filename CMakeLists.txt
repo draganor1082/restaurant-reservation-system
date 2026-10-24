@@ -9,8 +9,16 @@ add_executable(restaurant
     src/main.cpp
     "include/Customer.hpp"
     "include/Time.hpp"
-    "src/Time.cpp")
+    "include/Date.hpp"
+    "include/pch.hpp"
+    "src/Time.cpp"
+    "src/Date.cpp")
+
 
 target_include_directories(restaurant PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_precompile_headers(restaurant PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.hpp"
 )
