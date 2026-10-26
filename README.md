@@ -1,8 +1,8 @@
 # Restaurant Reservation Management System
 
-A console-based restaurant reservation management system developed in **C++17**, with SQLite integration planned.
+A console-based restaurant reservation management system being developed in **C++17**, with SQLite integration planned.
 
-The project focuses on object-oriented programming, reservation management, data validation, and persistent storage. It is being developed as a practical C++ software engineering project.
+The project focuses on object-oriented programming, reservation management, data validation, automated testing, and persistent storage. It is being developed as a practical C++ software engineering portfolio project.
 
 ## Features
 
@@ -14,6 +14,8 @@ The project focuses on object-oriented programming, reservation management, data
 - Reservation entities with unique IDs and status tracking
 - Reservation time validation and overlap detection
 - Reservation duration calculation
+- Unit tests using GoogleTest
+- Automated build and test workflow using GitHub Actions
 
 ### Planned
 - Reservation creation, modification, and cancellation through a management service
@@ -22,20 +24,63 @@ The project focuses on object-oriented programming, reservation management, data
 - Customer search and reservation history
 - SQLite database integration for persistent storage
 - Console-based user interface
-- Unit testing with GoogleTest
+- Additional unit tests for new components
 
 ## Technology Stack
 
 - **Language:** C++17
 - **Build System:** CMake
 - **Database:** SQLite (planned)
-- **Testing:** GoogleTest (planned)
+- **Testing:** GoogleTest, CTest
+- **CI:** GitHub Actions (Windows)
 - **Development Tools:** Visual Studio 2026, Git, GitHub
+
+## Building the Project
+
+### Requirements
+- C++17-compatible compiler
+- CMake
+- Git and an internet connection for fetching GoogleTest during configuration
+
+### Build
+
+```bash
+cmake -S . -B build
+cmake --build build --config Debug
+```
+
+### Running Unit Tests
+
+```bash
+ctest --test-dir build -C Debug --output-on-failure
+```
+
+The project currently contains 15 unit tests covering reservation time overlaps, customer and table IDs, reservation statuses, setters, and duration calculations.
+
+## Continuous Integration
+
+The project uses **GitHub Actions** to automatically build and test the application.
+
+The CI workflow is triggered by:
+- Pushes to the repository
+- Pull requests
+
+The pipeline runs on a Windows runner and performs the following steps:
+
+1. Checks out the repository.
+2. Configures the project using CMake.
+3. Builds the application and test executable.
+4. Runs unit tests through CTest and GoogleTest.
+
+The workflow configuration is located in `.github/workflows/ci.yml`.
 
 ## Project Structure
 
 ```text
 restaurant-reservation-system/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── include/
 │   ├── Table/
 │   │   ├── Table.hpp
@@ -55,7 +100,8 @@ restaurant-reservation-system/
 │   ├── Time.cpp
 │   ├── Reservation.cpp
 │   └── main.cpp
-├── tests/
+├── Tests/
+│   └── ReservationTests.cpp
 ├── database/
 ├── CMakeLists.txt
 ├── .gitignore
@@ -73,11 +119,14 @@ restaurant-reservation-system/
 - [x] `RegularTable` and `VIPTable` derived classes
 - [x] `Reservation` class — validation, status, duration, and overlap detection
 - [x] Initial functionality testing through `main.cpp`
+- [x] GoogleTest integration and initial unit tests
+- [x] GitHub Actions CI workflow
 - [ ] `ReservationService` — reservation management and availability checks
 - [ ] SQLite database integration
 - [ ] Console interface
-- [ ] Automated unit tests with GoogleTest
+- [ ] Additional unit test coverage
 - [ ] Linux build verification
+- [ ] Automated release workflow (CD)
 
 ## Architecture
 
@@ -99,9 +148,9 @@ The system follows an object-oriented design with a separation between domain en
 
 **In Development**
 
-Core domain entities are implemented, including customer, table, and reservation models.
+Core domain entities, initial unit tests, and the CI workflow are implemented.
 
-The next development milestone is implementing `ReservationService` to connect these entities and introduce reservation management logic.
+The next development milestone is implementing `ReservationService` to connect the existing entities and introduce reservation management logic.
 
 ## Author
 

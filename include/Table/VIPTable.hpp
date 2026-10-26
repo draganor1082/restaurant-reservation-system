@@ -1,5 +1,6 @@
-#include "Table.hpp"
 #pragma once
+
+#include "Table.hpp"
 
 class VIPTable : public Table {
 private:

@@ -1,16 +1,16 @@
 #pragma once
 
 enum class Weekday {
-    Sunday = 0,
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday
-};
+     Sunday = 0,
+     Monday,
+     Tuesday,
+     Wednesday,
+     Thursday,
+     Friday,
+     Saturday
+ };
 
-class Date {
+ class Date {
 private:
 	unsigned int _day;
 	unsigned int _month;

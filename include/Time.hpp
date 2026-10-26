@@ -1,7 +1,4 @@
 #pragma once
-#include <stdexcept>
-#include <string>
-#include <iomanip>
 
 class Time {
 private:
