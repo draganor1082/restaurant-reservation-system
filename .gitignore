@@ -77,3 +77,6 @@ out/
 *.db
 *.sqlite
 *.sqlite3
+
+# Personal development notes
+ideas.txt

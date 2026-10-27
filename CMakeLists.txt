@@ -12,6 +12,7 @@ add_executable(restaurant
     "include/Date.hpp"
     "include/pch.hpp"
     "include/Reservation.hpp"
+    "include/ReservationService.hpp"
     "include/Table/Table.hpp"
     "include/Table/RegularTable.hpp"
     "include/Table/VIPTable.hpp"
@@ -21,7 +22,7 @@ add_executable(restaurant
     "src/Time.cpp"
     "src/Reservation.cpp"
     "src/Date.cpp"
-)
+ "src/ReservationService.cpp")
 
 
 target_include_directories(restaurant PRIVATE
@@ -53,7 +54,7 @@ add_executable(restaurant_tests
     src/Reservation.cpp
     src/Date.cpp
     src/Time.cpp
-)
+ "src/ReservationService.cpp")
 
 target_include_directories(restaurant_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
