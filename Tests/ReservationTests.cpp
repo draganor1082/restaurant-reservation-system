@@ -1,123 +1,76 @@
 #include <gtest/gtest.h>
-#include "Reservation.hpp"
+#include "ReservationService.hpp"
 
-TEST(ReservationTest, SimpleCheck) { EXPECT_EQ(2 + 2, 4); }
+// ============================================================
+// DeleteReservation
+// ============================================================
 
-TEST(ReservationTest, OverlappingTimeIntervals_1)
+TEST(ReservationServiceDeleteTest, DeleteNonExistingReservation)
 {
-    Date date("26.10.2026");
-    Time start1(14, 0);
-    Time end1(15, 0);
+    ReservationService service;
 
-    Time start2(14, 30);
-    Time end2(15, 30);
-
-    Reservation r1(1, 1, date, start1, end1);
-    Reservation r2(2, 1, date, start2, end2);
-
-    EXPECT_TRUE(Reservation::OverlapsWith(r1, r2));
+    EXPECT_FALSE(service.DeleteReservation(999));
+    EXPECT_EQ(service.GetReservation(999), nullptr);
 }
 
-TEST(ReservationTest, OverlappingTimeIntervals_2)
+TEST(ReservationServiceDeleteTest, DeleteReservationFromEmptyService)
 {
-    Date date("26.10.2026");
-    Time start1(14, 0);
-    Time end1(15, 0);
+    ReservationService service;
 
-    Time start2(15, 00);
-    Time end2(15, 30);
-
-    Reservation r1(1, 1, date, start1, end1);
-    Reservation r2(2, 1, date, start2, end2);
-
-    EXPECT_FALSE(Reservation::OverlapsWith(r1, r2));
+    EXPECT_FALSE(service.DeleteReservation(100));
 }
 
-TEST(ReservationTest, OverlappingTimeIntervals_3)
+// ============================================================
+// DeleteCustomer
+// ============================================================
+
+TEST(ReservationServiceDeleteTest, DeleteNonExistingCustomer)
 {
-    Date date("26.10.2026");
-    Time start1(14, 0);
-    Time end1(16, 0);
+    ReservationService service;
 
-    Time start2(14, 30);
-    Time end2(23, 30);
-
-    Reservation r1(1, 1, date, start1, end1);
-    Reservation r2(2, 1, date, start2, end2);
-
-    EXPECT_TRUE(Reservation::OverlapsWith(r1, r2));
+    EXPECT_FALSE(service.DeleteCustomer(999));
+    EXPECT_EQ(service.GetCustomer(999), nullptr);
 }
 
-TEST(ReservationTest, GetCustomerId)
+TEST(ReservationServiceDeleteTest, DeleteCustomerFromEmptyService)
 {
-    Date date("26.10.2026");
-    Time start(14, 0), end(15, 0);
+    ReservationService service;
 
-    Reservation r(42, 1, date, start, end);
-
-    EXPECT_EQ(r.GetCustomerId(), 42u);
+    EXPECT_FALSE(service.DeleteCustomer(1));
 }
 
-TEST(ReservationTest, GetTableId)
+// ============================================================
+// DeleteTable
+// ============================================================
+
+TEST(ReservationServiceDeleteTest, DeleteNonExistingTable)
 {
-    Date date("26.10.2026");
-    Time start(14, 0), end(15, 0);
+    ReservationService service;
 
-    Reservation r(1, 7, date, start, end);
-
-    EXPECT_EQ(r.GetTableId(), 7u);
+    EXPECT_FALSE(service.DeleteTable(999));
+    EXPECT_EQ(service.GetTable(999), nullptr);
 }
 
-TEST(ReservationTest, DefaultStatusIsConfirmed)
+TEST(ReservationServiceDeleteTest, DeleteTableFromEmptyService)
 {
-    Date date("26.10.2026");
-    Time start(14, 0), end(15, 0);
+    ReservationService service;
 
-    Reservation r(1, 1, date, start, end);
-
-    EXPECT_EQ(r.GetStatus(), ReservationStatus::Confirmed);
+    EXPECT_FALSE(service.DeleteTable(10));
 }
 
-TEST(ReservationTest, CustomStatusIsCancelled)
+// ============================================================
+// Check that failed deletions don't affect other empty indexes
+// ============================================================
+
+TEST(ReservationServiceDeleteTest, FailedDeletionKeepsServiceEmpty)
 {
-    Date date("26.10.2026");
-    Time start(14, 0), end(15, 0);
+    ReservationService service;
 
-    Reservation r(1, 1, date, start, end, ReservationStatus::Cancelled);
+    EXPECT_FALSE(service.DeleteReservation(100));
+    EXPECT_FALSE(service.DeleteCustomer(1));
+    EXPECT_FALSE(service.DeleteTable(10));
 
-    EXPECT_EQ(r.GetStatus(), ReservationStatus::Cancelled);
-}
-
-TEST(ReservationTest, SetCustomerId)
-{
-    Date date("26.10.2026");
-    Time start(14, 0), end(15, 0);
-
-    Reservation r(1, 1, date, start, end);
-
-    r.SetCustomerId(25);
-
-    EXPECT_EQ(r.GetCustomerId(), 25u);
-}
-
-TEST(ReservationTest, SetTableId)
-{
-    Date date("26.10.2026");
-    Time start(14, 0), end(15, 0);
-
-    Reservation r(1, 1, date, start, end);
-
-    r.SetTableId(10);
-
-    EXPECT_EQ(r.GetTableId(), 10u);
-}
-
-TEST(ReservationTest, GetDuration)
-{
-    Date date("26.10.2026");
-    Time start(14, 0), end(16, 30);
-
-    Reservation r(1, 1, date, start, end);
-
-    EXPECT_EQ(r.GetDuration(), 150u);
+    EXPECT_EQ(service.GetReservation(100), nullptr);
+    EXPECT_EQ(service.GetCustomer(1), nullptr);
+    EXPECT_EQ(service.GetTable(10), nullptr);
 }

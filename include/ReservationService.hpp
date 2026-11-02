@@ -14,28 +14,36 @@ class ReservationService
     std::unordered_map<unsigned int, std::unique_ptr<Reservation>> _reservations;
 
     // reservation history indexes
-    std::unordered_map<unsigned int, std::vector<unsigned int>> _customerHistory;
-    std::unordered_map<unsigned int, std::vector<unsigned int>> _tableHistory;
+    std::unordered_map<unsigned int, std::vector<unsigned int>>
+        _customerHistory;                                                       // vector of customer's reservation ids
+    std::unordered_map<unsigned int, std::vector<unsigned int>> _tableHistory;  // vector of table's reservation ids
 
    public:
     // custoner manegment
     bool AddCustomer(const Customer& customer);
     const Customer* GetCustomer(unsigned int idx) const;
+    bool DeleteCustomer(unsigned int customerId);
 
     // table manegment
     bool AddTable(std::unique_ptr<Table> table);
     const Table* GetTable(unsigned int idx) const;
+    bool DeleteTable(unsigned int tableId);
 
     // reservation manegment
     bool CreateReservation(unsigned int customerId, unsigned int tableId, const Date& date, const Time& startTime,
                            const Time& endTime);
     bool CancelReservation(unsigned int reservationId);
     const Reservation* GetReservation(unsigned int reservationID) const;
+    bool ChangeReservationTime(unsigned int reservationId, const Date& date, const Time& startTime,
+                               const Time& endTime);
+    bool DeleteReservation(unsigned int reservationId);
+    bool ChangeReservationCustomer(unsigned int reservationId, unsigned int customerId);
 
     // reservation history
     std::vector<unsigned int> GetCustomerHistort(unsigned int customerId) const;
     std::vector<unsigned int> GetTableHistory(unsigned int tableId) const;
 
     // other methods
-    bool IsTableAvaible(unsigned int tableId, const Date& date, const Time& startTime, const Time& endTime);
+    bool IsTableAvaible(unsigned int tableId, const Date& date, const Time& startTime, const Time& endTime,
+                        std::optional<unsigned int> excludeReservationId = std::nullopt) const;
 };
