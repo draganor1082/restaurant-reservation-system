@@ -17,6 +17,7 @@ class Reservation
     unsigned int _id;
     unsigned int _customerId;
     unsigned int _tableId;
+    unsigned int _guestCount;
 
     ReservationStatus _status;
 
@@ -25,12 +26,13 @@ class Reservation
     Time _endTime;
 
    public:
-    Reservation(unsigned int customerId, unsigned int tableId, const Date& date, const Time& startTime,
-                const Time& endTime, ReservationStatus status = ReservationStatus::Confirmed);
+    Reservation(unsigned int customerId, unsigned int tableId, unsigned int guestCount, const Date& date,
+                const Time& startTime, const Time& endTime, ReservationStatus status = ReservationStatus::Confirmed);
 
     unsigned int GetId() const { return _id; }
     unsigned int GetCustomerId() const { return _customerId; }
     unsigned int GetTableId() const { return _tableId; }
+    unsigned int GetGuestCount() const { return _guestCount; }
 
     const Date& GetDate() const { return _date; }
     const Time& GetStartTime() const { return _startTime; }
@@ -42,6 +44,7 @@ class Reservation
     void SetCustomerId(unsigned int customerId);
     void SetTableId(unsigned int tableId);
     void SetStatus(ReservationStatus status) { _status = status; }
+    void SetGuestCount(unsigned int guestCount);
 
     bool OverlapsWith(const Reservation& other) const;
     static bool OverlapsWith(const Reservation& r1, const Reservation& r2);

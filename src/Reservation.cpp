@@ -1,13 +1,21 @@
 #include "Reservation.hpp"
 
-Reservation::Reservation(unsigned int customerId, unsigned int tableId, const Date& date, const Time& startTime,
-                         const Time& endTime, ReservationStatus status)
-    : _customerId(customerId), _tableId(tableId), _date(date), _startTime(startTime), _endTime(endTime), _status(status)
+Reservation::Reservation(unsigned int customerId, unsigned int tableId, unsigned int guestCount, const Date& date,
+                         const Time& startTime, const Time& endTime, ReservationStatus status)
+    : _customerId(customerId),
+      _tableId(tableId),
+      _date(date),
+      _startTime(startTime),
+      _endTime(endTime),
+      _status(status),
+      _guestCount(guestCount)
 {
     if (startTime >= endTime)
         throw std::invalid_argument("End time must be later than start time");
     else if (customerId == 0 || tableId == 0)
         throw std::invalid_argument("Invalid arguments");
+    else if (guestCount == 0)
+        throw std::invalid_argument("Guest count must be greater than zero");
     _id = ++_nextID;
 }
 
@@ -34,6 +42,13 @@ void Reservation::SetTableId(unsigned int tableId)
     if (tableId == 0)
         throw std::invalid_argument("Table id can not equal to 0");
     _tableId = tableId;
+}
+
+void Reservation::SetGuestCount(unsigned int guestCount)
+{
+    if (guestCount == 0)
+        throw std::invalid_argument("Guest count must be greater than zero");
+    _guestCount = guestCount;
 }
 
 bool Reservation::OverlapsWith(const Reservation& other) const

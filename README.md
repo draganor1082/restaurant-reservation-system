@@ -1,18 +1,21 @@
 # Restaurant Reservation Management System
 
-A console-based restaurant reservation management system built with **C++20**.
+A console-oriented restaurant reservation management system built with **C++20**.
 
-The project focuses on object-oriented design, reservation scheduling, business logic, STL containers, and automated testing. Developed as a practical C++ software engineering portfolio project.
+The project focuses on object-oriented design, reservation scheduling, business logic, STL containers, efficient table selection, and automated testing. Developed as a practical C++ software engineering portfolio project.
 
 ## Features
 
 ### Implemented
 
-- Customer and table management, including VIP support
+- Customer and table management, including VIP customer and table types
 - Reservation creation, cancellation, modification, and deletion
 - Reservation time validation and overlap detection
 - Table availability checks and reservation rescheduling
-- Customer reassignment for existing reservations
+- Customer reassignment and table changes for existing reservations
+- Guest count validation and modification based on table capacity
+- **Best Fit table search** — selects the smallest available table with sufficient capacity
+- Capacity-based table indexing using `std::map` and `lower_bound()`
 - Customer and table reservation history
 - Automatic removal of associated reservations when deleting customers or tables
 - In-memory data management using STL containers
@@ -21,7 +24,8 @@ The project focuses on object-oriented design, reservation scheduling, business 
 
 ### Planned
 
-- Extended VIP reservation rules
+- VIP reservation eligibility rules
+- Automatic reservation creation using Best Fit table selection
 - Alternative available time slot suggestions
 - SQLite integration for persistent storage
 - Console-based user interface
@@ -62,7 +66,9 @@ ctest --test-dir build -C Debug --output-on-failure
 
 ```text
 restaurant-reservation-system/
-├── .github/workflows/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── include/
 │   ├── Table/
 │   ├── Customer.hpp
@@ -75,7 +81,8 @@ restaurant-reservation-system/
 │   ├── ReservationService.cpp
 │   └── ...
 ├── Tests/
-│   └── ReservationTests.cpp
+│   ├── ReservationTests.cpp
+│   └── TableSearchTests.cpp
 ├── database/
 ├── CMakeLists.txt
 └── README.md
@@ -89,7 +96,7 @@ The system separates domain entities from reservation management logic.
 
 - `Customer` — customer information and VIP status
 - `Table` — polymorphic base class for regular and VIP tables
-- `Reservation` — reservation details, scheduling, and status
+- `Reservation` — reservation details, guest count, scheduling, and status
 - `Date` / `Time` — date and time validation
 - `ReservationService` — central service for managing customers, tables, reservations, and their relationships
 
@@ -97,7 +104,25 @@ The service uses `std::unordered_map` for efficient ID-based lookups, `std::vect
 
 Reservation histories reference centrally stored reservation objects by ID, avoiding data duplication.
 
-SQLite persistence is planned to replace the current in-memory-only storage.
+### Table Selection Algorithm
+
+The system implements a **Best Fit** strategy to find the smallest available table capable of accommodating a requested number of guests.
+
+Tables are indexed by capacity using:
+
+```cpp
+std::map<unsigned int, std::vector<unsigned int>> _tablesByCapacity;
+```
+
+The algorithm uses `lower_bound()` to locate the smallest sufficient capacity, then checks the corresponding tables for availability. If none are available, it continues to larger capacities.
+
+The initial capacity lookup takes **O(log k)**, where `k` is the number of distinct table capacities. Availability checks depend on the number of candidate tables and their reservation histories.
+
+The capacity index is maintained when tables are added or deleted.
+
+### Data Persistence
+
+The current implementation stores data in memory. SQLite integration is planned to provide persistent storage.
 
 ## Continuous Integration
 
@@ -109,9 +134,9 @@ Workflow: `.github/workflows/ci.yml`
 
 **In Development**
 
-Core domain models and reservation management operations are implemented.
+Core reservation management operations, guest count validation, table reassignment, and capacity-based table search are implemented and covered by automated tests.
 
-Current priorities are expanding test coverage, refining business rules, and preparing SQLite persistence.
+Current priorities are implementing VIP eligibility rules, integrating automatic table selection into reservation creation, and preparing SQLite persistence.
 
 ## Author
 
