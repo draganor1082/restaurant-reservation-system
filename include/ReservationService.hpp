@@ -19,6 +19,8 @@ class ReservationService
         _customerHistory;                                                       // vector of customer's reservation ids
     std::unordered_map<unsigned int, std::vector<unsigned int>> _tableHistory;  // vector of table's reservation ids
 
+    bool CanCustomerUseTable(const Customer& customer, const Table& table) const;
+
    public:
     // custoner manegment
     bool AddCustomer(const Customer& customer);
@@ -42,7 +44,7 @@ class ReservationService
     bool ChangeReservationTable(unsigned int reservationId, unsigned int newTableId);
     bool ChangeReservationGuestCount(unsigned int reservationId, unsigned int newGuestCount);
     std::optional<unsigned int> FindSuitableTable(unsigned int customerId, unsigned int guestCount, const Date& date,
-                                                  const Time& startTime, const Time& endTime);
+                                                  const Time& startTime, const Time& endTime) const;
 
     // reservation history
     std::vector<unsigned int> GetCustomerHistort(unsigned int customerId) const;

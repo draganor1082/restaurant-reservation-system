@@ -1,5 +1,13 @@
 #include "ReservationService.hpp"
 
+bool ReservationService::CanCustomerUseTable(const Customer& customer, const Table& table) const
+{
+    if (!customer.IsVIP() && table.IsVip())
+        return false;
+
+    return true;
+}
+
 bool ReservationService::AddCustomer(const Customer& customer)
 {
     auto [it, inserted] = _customers.emplace(customer.GetId(), customer);
@@ -120,6 +128,9 @@ bool ReservationService::CreateReservation(unsigned int customerId, unsigned int
     if (tableIt == _tables.end())
         return false;
 
+    if (!CanCustomerUseTable(customerIt->second, *tableIt->second))
+        return false;
+
     if (!tableIt->second->CanAccommodate(guestCount))
         return false;
 
@@ -227,6 +238,13 @@ bool ReservationService::ChangeReservationCustomer(unsigned int reservationId, u
     if (reservationIt->second->GetStatus() != ReservationStatus::Confirmed)
         return false;
 
+    auto tableIt = _tables.find(reservationIt->second->GetTableId());
+    if (tableIt == _tables.end())
+        return false;
+
+    if (!CanCustomerUseTable(newCustomerIt->second, *tableIt->second))
+        return false;
+
     if (reservationIt->second->GetCustomerId() == newCustomerId)
         return true;
 
@@ -262,6 +280,13 @@ bool ReservationService::ChangeReservationTable(unsigned int reservationId, unsi
     if (newTableIt == _tables.end())
         return false;
 
+    auto customerIt = _customers.find(reservationIt->second->GetCustomerId());
+    if (customerIt == _customers.end())
+        return false;
+
+    if (!CanCustomerUseTable(customerIt->second, *newTableIt->second))
+        return false;
+
     auto oldTableId = reservation.GetTableId();
 
     auto oldTableIt = _tables.find(oldTableId);
@@ -271,7 +296,7 @@ bool ReservationService::ChangeReservationTable(unsigned int reservationId, unsi
     if (oldTableId == newTableId)
         return true;
 
-    if (reservation.GetGuestCount() > newTableIt->second->GetCapacity())
+    if (!newTableIt->second->CanAccommodate(reservation.GetGuestCount()))
         return false;
 
     auto oldTableHistoryIt = _tableHistory.find(oldTableId);
@@ -330,13 +355,16 @@ bool ReservationService::ChangeReservationGuestCount(unsigned int reservationId,
 
 std::optional<unsigned int> ReservationService::FindSuitableTable(unsigned int customerId, unsigned int guestCount,
                                                                   const Date& date, const Time& startTime,
-                                                                  const Time& endTime)
+                                                                  const Time& endTime) const
 {
     if (guestCount == 0)
         return std::nullopt;
 
-    if (!_customers.contains(customerId))
+    auto customerIt = _customers.find(customerId);
+    if (customerIt == _customers.end())
         return std::nullopt;
+
+    bool isCustomerVip = customerIt->second.IsVIP();
 
     auto it = _tablesByCapacity.lower_bound(guestCount);
 
@@ -349,7 +377,7 @@ std::optional<unsigned int> ReservationService::FindSuitableTable(unsigned int c
             if (tableIt == _tables.end())
                 continue;
 
-            if (!IsTableAvaible(tableId, date, startTime, endTime))
+            if (!IsTableAvaible(tableId, date, startTime, endTime) || !CanCustomerUseTable(customerIt->second, *tableIt->second))
                 continue;
 
             return tableId;

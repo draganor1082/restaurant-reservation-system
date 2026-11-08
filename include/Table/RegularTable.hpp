@@ -5,4 +5,6 @@ class RegularTable : public Table
 {
    public:
     RegularTable(unsigned int capacity, bool status = true);
+
+    bool IsVip() const override { return false; }
 };

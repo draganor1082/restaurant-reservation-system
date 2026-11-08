@@ -12,4 +12,6 @@ class VIPTable : public Table
 
     double GetExtraFee() const { return _extraFee; }
     void SetEctraFee(double amount);
+
+    bool IsVip() const override { return true; }
 };

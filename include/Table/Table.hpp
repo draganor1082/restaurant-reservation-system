@@ -24,6 +24,7 @@ class Table
     void SetActive(bool status) { _isActive = status; }
 
     virtual bool CanAccommodate(unsigned int guests) const;
+    virtual bool IsVip() const = 0;
 
     bool operator<(const Table& other) const;
     bool operator>(const Table& other) const;

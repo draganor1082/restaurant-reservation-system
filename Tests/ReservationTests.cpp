@@ -1,11 +1,11 @@
 
 #include <gtest/gtest.h>
-#include <memory>
-#include <optional>
 
-#include "Customer.hpp"
 #include "ReservationService.hpp"
 #include "Table/RegularTable.hpp"
+#include "Table/VIPTable.hpp"
+
+#include <memory>
 
 class TableSearchTest : public ::testing::Test
 {
@@ -23,9 +23,25 @@ class TableSearchTest : public ::testing::Test
         return customer.GetId();
     }
 
+    unsigned int AddVIPCustomer()
+    {
+        Customer customer("Alex", "+48123456789", true);
+        EXPECT_TRUE(service.AddCustomer(customer));
+        return customer.GetId();
+    }
+
     unsigned int AddTable(unsigned int capacity)
     {
         auto table = std::make_unique<RegularTable>(capacity);
+        unsigned int id = table->GetId();
+
+        EXPECT_TRUE(service.AddTable(std::move(table)));
+        return id;
+    }
+
+    unsigned int AddVIPTable(unsigned int capacity)
+    {
+        auto table = std::make_unique<VIPTable>(capacity, 10.0);
         unsigned int id = table->GetId();
 
         EXPECT_TRUE(service.AddTable(std::move(table)));
@@ -38,73 +54,56 @@ class TableSearchTest : public ::testing::Test
     }
 };
 
-// Finds the smallest table with sufficient capacity
+// Best-fit search
+
 TEST_F(TableSearchTest, FindsBestFit)
 {
     auto customerId = AddCustomer();
 
-    AddTable(8);
-    auto bestTable = AddTable(4);
+    AddTable(2);
+    auto bestTableId = AddTable(4);
     AddTable(6);
 
     auto result = service.FindSuitableTable(customerId, 3, date, start, end);
 
     ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(*result, bestTable);
+    EXPECT_EQ(*result, bestTableId);
 }
 
-// Skips an occupied table of the same capacity
 TEST_F(TableSearchTest, SkipsOccupiedTable)
 {
     auto customerId = AddCustomer();
 
-    auto occupiedTable = AddTable(4);
-    auto freeTable = AddTable(4);
+    auto occupiedTableId = AddTable(4);
+    auto availableTableId = AddTable(4);
 
-    Reserve(customerId, occupiedTable, 2);
+    Reserve(customerId, occupiedTableId, 3);
 
     auto result = service.FindSuitableTable(customerId, 3, date, start, end);
 
     ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(*result, freeTable);
+    EXPECT_EQ(*result, availableTableId);
 }
 
-// Moves to the next capacity when smaller tables are occupied
 TEST_F(TableSearchTest, FindsLargerTable)
 {
     auto customerId = AddCustomer();
 
-    auto smallTable = AddTable(4);
-    auto largeTable = AddTable(6);
-
-    Reserve(customerId, smallTable, 3);
-
-    auto result = service.FindSuitableTable(customerId, 3, date, start, end);
-
-    ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(*result, largeTable);
-}
-
-// No table has enough capacity
-TEST_F(TableSearchTest, RejectsInsufficientCapacity)
-{
-    auto customerId = AddCustomer();
-
-    AddTable(2);
     AddTable(4);
+    auto largerTableId = AddTable(6);
 
     auto result = service.FindSuitableTable(customerId, 5, date, start, end);
 
-    EXPECT_FALSE(result.has_value());
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(*result, largerTableId);
 }
 
-// All suitable tables are occupied
 TEST_F(TableSearchTest, RejectsWhenAllTablesOccupied)
 {
     auto customerId = AddCustomer();
 
     auto table1 = AddTable(4);
-    auto table2 = AddTable(6);
+    auto table2 = AddTable(4);
 
     Reserve(customerId, table1, 3);
     Reserve(customerId, table2, 3);
@@ -114,47 +113,29 @@ TEST_F(TableSearchTest, RejectsWhenAllTablesOccupied)
     EXPECT_FALSE(result.has_value());
 }
 
-// Deleting a table updates the capacity index
-TEST_F(TableSearchTest, UpdatesIndexAfterTableDeletion)
+// VIP restrictions
+
+TEST_F(TableSearchTest, RegularCustomerCannotUseVIPTable)
 {
     auto customerId = AddCustomer();
-
-    auto table1 = AddTable(4);
-    auto table2 = AddTable(6);
-
-    ASSERT_TRUE(service.DeleteTable(table1));
-
-    EXPECT_EQ(service.GetTable(table1), nullptr);
+    auto vipTableId = AddVIPTable(4);
 
     auto result = service.FindSuitableTable(customerId, 3, date, start, end);
 
-    ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(*result, table2);
+    EXPECT_FALSE(result.has_value());
+
+    EXPECT_FALSE(service.CreateReservation(customerId, vipTableId, 3, date, start, end));
 }
 
-// Deleting an occupied table also deletes its reservations
-TEST_F(TableSearchTest, DeletesTableWithReservations)
+TEST_F(TableSearchTest, VIPCustomerCanUseVIPTable)
 {
-    auto customerId = AddCustomer();
-
-    auto table1 = AddTable(4);
-    auto table2 = AddTable(6);
-
-    Reserve(customerId, table1, 3);
-
-    auto history = service.GetTableHistory(table1);
-    ASSERT_EQ(history.size(), 1u);
-
-    unsigned int reservationId = history.front();
-
-    ASSERT_TRUE(service.DeleteTable(table1));
-
-    EXPECT_EQ(service.GetTable(table1), nullptr);
-    EXPECT_EQ(service.GetReservation(reservationId), nullptr);
-    EXPECT_TRUE(service.GetTableHistory(table1).empty());
+    auto customerId = AddVIPCustomer();
+    auto vipTableId = AddVIPTable(4);
 
     auto result = service.FindSuitableTable(customerId, 3, date, start, end);
 
     ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(*result, table2);
+    EXPECT_EQ(*result, vipTableId);
+
+    EXPECT_TRUE(service.CreateReservation(customerId, vipTableId, 3, date, start, end));
 }

@@ -11,7 +11,8 @@ class Customer
     inline static unsigned int _totalNumberOfCustomers = 0;
 
    public:
-    Customer(const std::string& name, const std::string& phoneNumber) : _name(name), _phoneNumber(phoneNumber)
+    Customer(const std::string& name, const std::string& phoneNumber, const bool isVip = false)
+        : _name(name), _phoneNumber(phoneNumber), _isVIP(isVip)
     {
         _id = ++_totalNumberOfCustomers;
     }
@@ -23,7 +24,7 @@ class Customer
     bool IsVIP() const { return _isVIP; }
 
     void SetVIP(bool status) { _isVIP = status; }
-    void SetPhoneNumber(const std::string& newPhoneNumber);
+    void SetPhoneNumber(const std::string& newPhoneNumber); //TBD
 
     Customer& operator=(const Customer& other) = delete;
     Customer(const Customer& other) = default;
