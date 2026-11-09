@@ -24,7 +24,7 @@ class Customer
     bool IsVIP() const { return _isVIP; }
 
     void SetVIP(bool status) { _isVIP = status; }
-    void SetPhoneNumber(const std::string& newPhoneNumber); //TBD
+    void SetPhoneNumber(const std::string& newPhoneNumber);  // TBD
 
     Customer& operator=(const Customer& other) = delete;
     Customer(const Customer& other) = default;

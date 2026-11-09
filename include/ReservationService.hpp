@@ -12,7 +12,10 @@ class ReservationService
     std::unordered_map<unsigned int, Customer> _customers;
     std::unordered_map<unsigned int, std::unique_ptr<Table>> _tables;
     std::unordered_map<unsigned int, std::unique_ptr<Reservation>> _reservations;
+
     std::map<unsigned int, std::vector<unsigned int>> _tablesByCapacity;
+
+    std::unordered_map<unsigned int, std::map<Date, std::vector<unsigned int>>> _tableSchedule;
 
     // reservation history indexes
     std::unordered_map<unsigned int, std::vector<unsigned int>>
@@ -33,8 +36,9 @@ class ReservationService
     bool DeleteTable(unsigned int tableId);
 
     // reservation manegment
-    bool CreateReservation(unsigned int customerId, unsigned int tableId, unsigned int guestCount, const Date& date,
-                           const Time& startTime, const Time& endTime);
+    std::optional<unsigned int> CreateReservation(unsigned int customerId, unsigned int tableId,
+                                                  unsigned int guestCount, const Date& date, const Time& startTime,
+                                                  const Time& endTime);
     bool CancelReservation(unsigned int reservationId);
     const Reservation* GetReservation(unsigned int reservationID) const;
     bool ChangeReservationTime(unsigned int reservationId, const Date& date, const Time& startTime,
@@ -45,6 +49,8 @@ class ReservationService
     bool ChangeReservationGuestCount(unsigned int reservationId, unsigned int newGuestCount);
     std::optional<unsigned int> FindSuitableTable(unsigned int customerId, unsigned int guestCount, const Date& date,
                                                   const Time& startTime, const Time& endTime) const;
+    std::optional<unsigned int> CreateReservationAuto(unsigned int customerId, unsigned int guestCount,
+                                                      const Date& date, const Time& startTime, const Time& endTime);
 
     // reservation history
     std::vector<unsigned int> GetCustomerHistort(unsigned int customerId) const;

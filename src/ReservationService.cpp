@@ -38,9 +38,12 @@ bool ReservationService::DeleteCustomer(unsigned int customerId)
 
     if (historyIt != _customerHistory.end())
     {
-        for (unsigned int reservationId : historyIt->second)
+        auto reservationIds = historyIt->second;
+
+        for (unsigned int reservationId : reservationIds)
         {
-            DeleteReservation(reservationId);
+            if (!DeleteReservation(reservationId))
+                return false;
         }
 
         _customerHistory.erase(historyIt);
@@ -68,6 +71,7 @@ bool ReservationService::AddTable(std::unique_ptr<Table> table)
         return false;
 
     _tableHistory.try_emplace(tableId);
+    _tableSchedule.try_emplace(tableId);
     _tablesByCapacity[capacity].push_back(tableId);
 
     return true;
@@ -113,29 +117,31 @@ bool ReservationService::DeleteTable(unsigned int tableId)
 
     _tableHistory.erase(tableId);
     _tables.erase(tableIt);
+    _tableSchedule.erase(tableId);
 
     return true;
 }
 
-bool ReservationService::CreateReservation(unsigned int customerId, unsigned int tableId, unsigned int guestCount,
-                                           const Date& date, const Time& startTime, const Time& endTime)
+std::optional<unsigned int> ReservationService::CreateReservation(unsigned int customerId, unsigned int tableId,
+                                                                  unsigned int guestCount, const Date& date,
+                                                                  const Time& startTime, const Time& endTime)
 {
     auto customerIt = _customers.find(customerId);
     if (customerIt == _customers.end())
-        return false;
+        return std::nullopt;
 
     auto tableIt = _tables.find(tableId);
     if (tableIt == _tables.end())
-        return false;
+        return std::nullopt;
 
     if (!CanCustomerUseTable(customerIt->second, *tableIt->second))
-        return false;
+        return std::nullopt;
 
     if (!tableIt->second->CanAccommodate(guestCount))
-        return false;
+        return std::nullopt;
 
     if (!IsTableAvaible(tableId, date, startTime, endTime))
-        return false;
+        return std::nullopt;
 
     auto reservation = std::make_unique<Reservation>(customerId, tableId, guestCount, date, startTime, endTime);
 
@@ -144,12 +150,13 @@ bool ReservationService::CreateReservation(unsigned int customerId, unsigned int
     auto it = _reservations.try_emplace(reservationId, std::move(reservation));
 
     if (!it.second)
-        return false;
+        return std::nullopt;
 
     _customerHistory[customerId].push_back(reservationId);
     _tableHistory[tableId].push_back(reservationId);
+    _tableSchedule[tableId][date].push_back(reservationId);
 
-    return true;
+    return reservationId;
 }
 
 bool ReservationService::CancelReservation(unsigned int reservationId)
@@ -158,10 +165,33 @@ bool ReservationService::CancelReservation(unsigned int reservationId)
     if (it == _reservations.end())
         return false;
 
-    Reservation& reservation = *it->second.get();
+    Reservation& reservation = *it->second;
 
     if (reservation.GetStatus() != ReservationStatus::Confirmed)
         return false;
+
+    unsigned int tableId = reservation.GetTableId();
+    const Date& date = reservation.GetDate();
+
+    auto scheduleIt = _tableSchedule.find(tableId);
+    if (scheduleIt == _tableSchedule.end())
+        return false;
+
+    auto& schedule = scheduleIt->second;
+
+    auto dateIt = schedule.find(date);
+    if (dateIt == schedule.end())
+        return false;
+
+    auto& reservationIds = dateIt->second;
+
+    if (std::find(reservationIds.begin(), reservationIds.end(), reservationId) == reservationIds.end())
+        return false;
+
+    std::erase(reservationIds, reservationId);
+
+    if (reservationIds.empty())
+        schedule.erase(dateIt);
 
     reservation.SetStatus(ReservationStatus::Cancelled);
 
@@ -186,16 +216,44 @@ bool ReservationService::ChangeReservationTime(unsigned int reservationId, const
     if (it == _reservations.end())
         return false;
 
-    Reservation& current = *it->second;
+    Reservation& reservation = *it->second;
 
-    if (!(current.GetStatus() == ReservationStatus::Confirmed))
+    if (!(reservation.GetStatus() == ReservationStatus::Confirmed))
         return false;
 
-    if (!IsTableAvaible(current.GetTableId(), date, startTime, endTime, reservationId))
+    unsigned int tableId = reservation.GetTableId();
+    const Date& oldDate = reservation.GetDate();
+
+    if (!IsTableAvaible(reservation.GetTableId(), date, startTime, endTime, reservationId))
         return false;
 
-    current.SetDate(date);
-    current.SetTime(startTime, endTime);
+    auto scheduleIt = _tableSchedule.find(tableId);
+    if (scheduleIt == _tableSchedule.end())
+        return false;
+
+    auto& schedule = scheduleIt->second;
+
+    auto oldDateIt = schedule.find(oldDate);
+    if (oldDateIt == schedule.end())
+        return false;
+
+    auto& reservationIds = oldDateIt->second;
+
+    if (std::find(reservationIds.begin(), reservationIds.end(), reservationId) == reservationIds.end())
+        return false;
+
+    if (!(oldDate == date))
+    {
+        schedule[date].push_back(reservationId);
+
+        std::erase(reservationIds, reservationId);
+
+        if (reservationIds.empty())
+            schedule.erase(oldDateIt);
+    }
+
+    reservation.SetDate(date);
+    reservation.SetTime(startTime, endTime);
     return true;
 }
 
@@ -204,6 +262,8 @@ bool ReservationService::DeleteReservation(unsigned int reservationId)
     auto reservationIt = _reservations.find(reservationId);
     if (reservationIt == _reservations.end())
         return false;
+
+    const Date& date = reservationIt->second->GetDate();
 
     unsigned int customerId = reservationIt->second->GetCustomerId();
     unsigned int tableId = reservationIt->second->GetTableId();
@@ -218,6 +278,21 @@ bool ReservationService::DeleteReservation(unsigned int reservationId)
     if (tableHistoryIt != _tableHistory.end())
     {
         std::erase(tableHistoryIt->second, reservationId);
+    }
+
+    auto scheduleIt = _tableSchedule.find(tableId);
+    if (scheduleIt != _tableSchedule.end())
+    {
+        auto& schedule = scheduleIt->second;
+        auto dateIt = schedule.find(date);
+
+        if (dateIt != schedule.end())
+        {
+            std::erase(dateIt->second, reservationId);
+
+            if (dateIt->second.empty())
+                schedule.erase(dateIt);
+        }
     }
 
     _reservations.erase(reservationIt);
@@ -273,6 +348,8 @@ bool ReservationService::ChangeReservationTable(unsigned int reservationId, unsi
 
     Reservation& reservation = *reservationIt->second;
 
+    const Date& date = reservation.GetDate();
+
     if (reservation.GetStatus() != ReservationStatus::Confirmed)
         return false;
 
@@ -310,14 +387,42 @@ bool ReservationService::ChangeReservationTable(unsigned int reservationId, unsi
     auto& oldHistory = oldTableHistoryIt->second;
     auto& newHistory = newTableHistoryIt->second;
 
+    if (std::find(oldHistory.begin(), oldHistory.end(), reservationId) == oldHistory.end())
+        return false;
+
     bool isNewTableAvaible =
         IsTableAvaible(newTableId, reservation.GetDate(), reservation.GetStartTime(), reservation.GetEndTime());
 
     if (!isNewTableAvaible)
         return false;
 
+    auto oldScheduleIt = _tableSchedule.find(oldTableId);
+    if (oldScheduleIt == _tableSchedule.end())
+        return false;
+
+    auto& oldSchedule = oldScheduleIt->second;
+
+    auto dateIt = oldSchedule.find(date);
+    if (dateIt == oldSchedule.end())
+        return false;
+
+    auto& oldReservationIds = dateIt->second;
+
+    if (std::find(oldReservationIds.begin(), oldReservationIds.end(), reservationId) == oldReservationIds.end())
+        return false;
+
+    auto newScheduleIt = _tableSchedule.find(newTableId);
+    if (newScheduleIt == _tableSchedule.end())
+        return false;
+
     newHistory.push_back(reservationId);
+    newScheduleIt->second[date].push_back(reservationId);
+
     std::erase(oldHistory, reservationId);
+    std::erase(oldReservationIds, reservationId);
+
+    if (oldReservationIds.empty())
+        oldSchedule.erase(dateIt);
 
     reservation.SetTableId(newTableId);
 
@@ -377,7 +482,8 @@ std::optional<unsigned int> ReservationService::FindSuitableTable(unsigned int c
             if (tableIt == _tables.end())
                 continue;
 
-            if (!IsTableAvaible(tableId, date, startTime, endTime) || !CanCustomerUseTable(customerIt->second, *tableIt->second))
+            if (!IsTableAvaible(tableId, date, startTime, endTime) ||
+                !CanCustomerUseTable(customerIt->second, *tableIt->second))
                 continue;
 
             return tableId;
@@ -385,6 +491,18 @@ std::optional<unsigned int> ReservationService::FindSuitableTable(unsigned int c
     }
 
     return std::nullopt;
+}
+
+std::optional<unsigned int> ReservationService::CreateReservationAuto(unsigned int customerId, unsigned int guestCount,
+                                                                      const Date& date, const Time& startTime,
+                                                                      const Time& endTime)
+{
+    auto tableId = FindSuitableTable(customerId, guestCount, date, startTime, endTime);
+
+    if (!tableId.has_value())
+        return std::nullopt;
+
+    return CreateReservation(customerId, *tableId, guestCount, date, startTime, endTime);
 }
 
 std::vector<unsigned int> ReservationService::GetCustomerHistort(unsigned int customerId) const
@@ -413,12 +531,17 @@ bool ReservationService::IsTableAvaible(unsigned int tableId, const Date& date, 
     if (!(startTime < endTime))
         return false;
 
-    auto historyIt = _tableHistory.find(tableId);
+    auto scheduleIt = _tableSchedule.find(tableId);
+    if (scheduleIt == _tableSchedule.end())
+        return false;
 
-    if (historyIt == _tableHistory.end())
+    auto& schedule = scheduleIt->second;
+
+    auto dateIt = schedule.find(date);
+    if (dateIt == schedule.end())
         return true;
 
-    for (unsigned int reservationId : historyIt->second)
+    for (unsigned int reservationId : dateIt->second)
     {
         if (excludeReservationId.has_value() && excludeReservationId == reservationId)
             continue;
@@ -431,8 +554,8 @@ bool ReservationService::IsTableAvaible(unsigned int tableId, const Date& date, 
 
         if (reservation.GetStatus() != ReservationStatus::Confirmed)
             continue;
-        if (!(reservation.GetDate() == date))
-            continue;
+        if (!(reservation.GetDate() == date) || reservation.GetTableId() != tableId)
+            false;
 
         bool overlaps = startTime < reservation.GetEndTime() && reservation.GetStartTime() < endTime;
 
