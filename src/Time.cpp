@@ -6,7 +6,7 @@
 /// <param name="minutes"></param>
 Time::Time(unsigned int hours, unsigned int minutes)
 {
-    if (hours >= 24 || minutes >= 60)
+    if (hours > 24 || minutes >= 60 || (hours == 24 && minutes != 0))
         throw std::invalid_argument("Invalid time");
     _hours = hours;
     _minutes = minutes;
@@ -38,14 +38,27 @@ Time::Time(const std::string& time)
     std::string hoursString = time.substr(0, colonPos);
     std::string minutesString = time.substr(colonPos + 1);
 
-    unsigned int hoursInt = std::stoi(hoursString);
-    unsigned int minutesInt = std::stoi(minutesString);
+    unsigned int hoursUInt = std::stoi(hoursString);
+    unsigned int minutesUInt = std::stoi(minutesString);
 
-    if (hoursInt >= 24 || minutesInt >= 60)
+    if (hoursUInt > 24 || minutesUInt >= 60 || (hoursUInt == 24 && minutesUInt != 0))
         throw std::invalid_argument("Invalid time value");
 
-    _hours = hoursInt;
-    _minutes = minutesInt;
+    _hours = hoursUInt;
+    _minutes = minutesUInt;
+}
+
+unsigned int Time::ToMinutes() const { return _hours * 60 + _minutes; }
+
+Time Time::FromMinutes(unsigned int minutes) 
+{ 
+     if (minutes > 1440)
+        throw std::invalid_argument("Invalid time value");
+
+    unsigned int _hours = minutes / 60;
+    unsigned int _minutes = minutes % 60;
+    return Time(_hours, _minutes);
+
 }
 
 bool Time::operator<(const Time& other) const

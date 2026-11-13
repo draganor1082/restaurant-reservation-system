@@ -10,8 +10,12 @@ class Time
     Time(unsigned int hours = 0, unsigned int minutes = 0);
     Time(const std::string& time);
 
+    unsigned int ToMinutes() const;
+
     unsigned int GetHours() const { return _hours; }
     unsigned int GetMinutes() const { return _minutes; }
+
+    static Time FromMinutes(unsigned int minutes);
 
     bool operator<(const Time& other) const;
     bool operator>(const Time& other) const;

@@ -505,6 +505,77 @@ std::optional<unsigned int> ReservationService::CreateReservationAuto(unsigned i
     return CreateReservation(customerId, *tableId, guestCount, date, startTime, endTime);
 }
 
+std::optional<ReservationSuggestion> ReservationService::FindBestReservation(unsigned int customerId,
+                                                                             unsigned int guestCount, const Date& date,
+                                                                             const Time& startTime,
+                                                                             const Time& endTime) const
+{
+    if (guestCount == 0 || !(startTime < endTime))
+        return std::nullopt;
+
+    auto customerIt = _customers.find(customerId);
+    if (customerIt == _customers.end())
+        return std::nullopt;
+
+    unsigned int duration = endTime.ToMinutes() - startTime.ToMinutes();
+
+    auto suitableTable = FindSuitableTable(customerId, guestCount, date, startTime, endTime);
+    
+    if (suitableTable.has_value())
+    {
+        return ReservationSuggestion(suitableTable.value(), date, startTime, endTime);
+    }
+
+    std::optional<ReservationSuggestion> bestSuggestion;
+
+    unsigned int smallestTimeDifference = std::numeric_limits<unsigned int>::max();
+
+    auto it = _tablesByCapacity.lower_bound(guestCount);
+
+    for (; it != _tablesByCapacity.end(); ++it)
+    {
+        for (unsigned int tableId : it->second)
+        {
+            auto tableIt = _tables.find(tableId);
+            if (tableIt == _tables.end())
+                continue;
+
+            if (!CanCustomerUseTable(customerIt->second, *tableIt->second))
+                continue;
+
+            auto freeIntervals = FindFreeIntervals(tableId, date);
+
+            for (const auto& interval : freeIntervals)
+            {
+                const unsigned int intervalStart = interval.start.ToMinutes();
+                const unsigned int intervalEnd = interval.end.ToMinutes();
+
+                if (intervalEnd - intervalStart < duration)
+                    continue;
+
+                const unsigned int candidateStart = std::max(intervalStart, startTime.ToMinutes());
+
+                const unsigned int candidateEnd = candidateStart + duration;
+
+                if (candidateEnd > intervalEnd)
+                    continue;
+
+                const unsigned int difference = candidateStart - startTime.ToMinutes();
+
+                if (difference < smallestTimeDifference)
+                {
+                    smallestTimeDifference = difference;
+
+                    bestSuggestion = ReservationSuggestion(tableId, date, Time::FromMinutes(candidateStart),
+                                                           Time::FromMinutes(candidateEnd));
+                }
+            }
+
+        }
+    }
+    return bestSuggestion;
+}
+
 std::vector<unsigned int> ReservationService::GetCustomerHistort(unsigned int customerId) const
 {
     auto it = _customerHistory.find(customerId);
@@ -555,7 +626,7 @@ bool ReservationService::IsTableAvaible(unsigned int tableId, const Date& date, 
         if (reservation.GetStatus() != ReservationStatus::Confirmed)
             continue;
         if (!(reservation.GetDate() == date) || reservation.GetTableId() != tableId)
-            false;
+            return false;
 
         bool overlaps = startTime < reservation.GetEndTime() && reservation.GetStartTime() < endTime;
 
@@ -565,3 +636,64 @@ bool ReservationService::IsTableAvaible(unsigned int tableId, const Date& date, 
 
     return true;
 }
+
+std::vector<TimeInterval> ReservationService::FindFreeIntervals(unsigned int tableId, const Date& date) const
+{
+    std::vector<TimeInterval> freeIntervals;
+
+    auto tableIt = _tables.find(tableId);
+    if (tableIt == _tables.end())
+        return freeIntervals;
+
+    auto scheduleIt = _tableSchedule.find(tableId);
+    if (scheduleIt == _tableSchedule.end())
+        return freeIntervals;
+
+    auto dateIt = scheduleIt->second.find(date);
+    if (dateIt == scheduleIt->second.end())
+    {
+        freeIntervals.push_back({Time(0, 0), Time(24, 00)});
+        return freeIntervals;
+    }
+
+    std::vector<const Reservation*> reservations;
+
+    for (unsigned int reservationId : dateIt->second)
+    {
+        auto reservationIt = _reservations.find(reservationId);
+        if (reservationIt == _reservations.end())
+            continue;
+
+        const Reservation& reservation = *reservationIt->second;
+
+        if (reservation.GetStatus() != ReservationStatus::Confirmed)
+            continue;
+
+        reservations.push_back(&reservation);
+    }
+
+    std::sort(reservations.begin(), reservations.end(), [](const Reservation* first, const Reservation* second)
+              { return first->GetStartTime() < second->GetStartTime(); });
+
+    Time currentTime(0, 0);
+    Time closingTime(24, 0);
+
+    for (const Reservation* reservation : reservations)
+    {
+        if (currentTime < reservation->GetStartTime())
+        {
+            freeIntervals.push_back({currentTime, reservation->GetStartTime()});
+        }
+
+        if (currentTime < reservation->GetEndTime())
+            currentTime = reservation->GetEndTime();
+    }
+
+    if (currentTime < closingTime)
+    {
+        freeIntervals.push_back({currentTime, closingTime});
+    }
+
+    return freeIntervals;
+}
+

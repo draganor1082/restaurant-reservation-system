@@ -5,6 +5,20 @@
 #include "Table/Table.hpp"
 #include "Time.hpp"
 
+struct TimeInterval
+{
+    Time start;
+    Time end;
+};
+
+struct ReservationSuggestion
+{
+    unsigned int tableId;
+    Date date;
+    Time startTime;
+    Time endTime;
+};
+
 class ReservationService
 {
    private:
@@ -51,6 +65,9 @@ class ReservationService
                                                   const Time& startTime, const Time& endTime) const;
     std::optional<unsigned int> CreateReservationAuto(unsigned int customerId, unsigned int guestCount,
                                                       const Date& date, const Time& startTime, const Time& endTime);
+    std::optional<ReservationSuggestion> FindBestReservation(unsigned int customerId, unsigned int guestCount,
+                                                             const Date& date, const Time& startTime,
+                                                             const Time& endTime) const;
 
     // reservation history
     std::vector<unsigned int> GetCustomerHistort(unsigned int customerId) const;
@@ -59,4 +76,5 @@ class ReservationService
     // other methods
     bool IsTableAvaible(unsigned int tableId, const Date& date, const Time& startTime, const Time& endTime,
                         std::optional<unsigned int> excludeReservationId = std::nullopt) const;
+    std::vector<TimeInterval> FindFreeIntervals(unsigned int tableId, const Date& date) const;
 };

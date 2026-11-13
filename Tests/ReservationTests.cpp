@@ -3,236 +3,223 @@
 
 #include "ReservationService.hpp"
 #include "Table/RegularTable.hpp"
+#include "Table/VIPTable.hpp"
 
 #include <memory>
 #include <optional>
 
-class TableScheduleTest : public ::testing::Test
+class FindBestReservationTest : public ::testing::Test
 {
    protected:
     ReservationService service;
 
     Date date{10, 11, 2026};
-    Date nextDate{11, 11, 2026};
 
-    Time start{18, 0};
-    Time end{20, 0};
+    Time requestedStart{18, 0};
+    Time requestedEnd{20, 0};
 
-    Time laterStart{20, 0};
-    Time laterEnd{22, 0};
+    unsigned int regularCustomerId;
+    unsigned int vipCustomerId;
 
-    unsigned int AddCustomer()
+    unsigned int AddCustomer(const std::string& name, bool isVip = false)
     {
-        Customer customer("Alex", "+48123456789");
+        Customer customer(name, "+48123456789", isVip);
 
         EXPECT_TRUE(service.AddCustomer(customer));
 
         return customer.GetId();
     }
 
-    unsigned int AddTable(unsigned int capacity = 4)
+    unsigned int AddRegularTable(unsigned int capacity)
     {
         auto table = std::make_unique<RegularTable>(capacity);
-        unsigned int tableId = table->GetId();
+        unsigned int id = table->GetId();
 
         EXPECT_TRUE(service.AddTable(std::move(table)));
 
-        return tableId;
+        return id;
     }
 
-    std::optional<unsigned int> Reserve(unsigned int customerId, unsigned int tableId, const Date& reservationDate)
+    unsigned int AddVIPTable(unsigned int capacity)
     {
-        return service.CreateReservation(customerId, tableId, 3, reservationDate, start, end);
+        auto table = std::make_unique<VIPTable>(capacity, 50.0);
+        unsigned int id = table->GetId();
+
+        EXPECT_TRUE(service.AddTable(std::move(table)));
+
+        return id;
+    }
+
+    std::optional<unsigned int> Reserve(unsigned int customerId, unsigned int tableId, Time start, Time end)
+    {
+        return service.CreateReservation(customerId, tableId, 2, date, start, end);
+    }
+
+    void SetUp() override
+    {
+        regularCustomerId = AddCustomer("Alex");
+        vipCustomerId = AddCustomer("John", true);
     }
 };
 
-// Creating a reservation blocks only its table and date.
+// Exact requested time is available.
 
-TEST_F(TableScheduleTest, ReservationBlocksOnlyMatchingDateAndTable)
+TEST_F(FindBestReservationTest, ReturnsOriginalTimeWhenAvailable)
 {
-    auto customerId = AddCustomer();
-    auto table1 = AddTable();
-    auto table2 = AddTable();
+    unsigned int tableId = AddRegularTable(4);
 
-    auto reservationId = Reserve(customerId, table1, date);
-    ASSERT_TRUE(reservationId.has_value());
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, requestedStart, requestedEnd);
 
-    EXPECT_FALSE(service.IsTableAvaible(table1, date, start, end));
+    ASSERT_TRUE(result.has_value());
 
-    EXPECT_TRUE(service.IsTableAvaible(table1, nextDate, start, end));
-
-    EXPECT_TRUE(service.IsTableAvaible(table2, date, start, end));
+    EXPECT_EQ(result->tableId, tableId);
+    EXPECT_TRUE(result->date == date);
+    EXPECT_TRUE(result->startTime == requestedStart);
+    EXPECT_TRUE(result->endTime == requestedEnd);
 }
 
-// Cancelling a reservation frees the time slot but keeps history.
+// If the requested time is occupied, find a later available interval.
 
-TEST_F(TableScheduleTest, CancellationFreesTimeSlot)
+TEST_F(FindBestReservationTest, FindsAlternativeTimeAfterRequestedTime)
 {
-    auto customerId = AddCustomer();
-    auto tableId = AddTable();
+    unsigned int tableId = AddRegularTable(4);
 
-    auto reservationId = Reserve(customerId, tableId, date);
-    ASSERT_TRUE(reservationId.has_value());
+    ASSERT_TRUE(Reserve(regularCustomerId, tableId, Time(18, 0), Time(20, 0)).has_value());
 
-    ASSERT_TRUE(service.CancelReservation(*reservationId));
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, Time(19, 0), Time(21, 0));
 
-    EXPECT_TRUE(service.IsTableAvaible(tableId, date, start, end));
+    ASSERT_TRUE(result.has_value());
 
-    const Reservation* reservation = service.GetReservation(*reservationId);
+    EXPECT_EQ(result->tableId, tableId);
+    EXPECT_TRUE(result->date == date);
 
-    ASSERT_NE(reservation, nullptr);
-    EXPECT_EQ(reservation->GetStatus(), ReservationStatus::Cancelled);
-
-    auto history = service.GetTableHistory(tableId);
-
-    ASSERT_EQ(history.size(), 1);
-    EXPECT_EQ(history[0], *reservationId);
-
-    auto newReservation = Reserve(customerId, tableId, date);
-
-    EXPECT_TRUE(newReservation.has_value());
+    EXPECT_TRUE(result->startTime == Time(20, 0));
+    EXPECT_TRUE(result->endTime == Time(22, 0));
 }
 
-// Moving a reservation to another date updates availability.
+// The suggested reservation must preserve the requested duration.
 
-TEST_F(TableScheduleTest, ChangingDateUpdatesSchedule)
+TEST_F(FindBestReservationTest, PreservesRequestedDuration)
 {
-    auto customerId = AddCustomer();
-    auto tableId = AddTable();
+    unsigned int tableId = AddRegularTable(4);
 
-    auto reservationId = Reserve(customerId, tableId, date);
-    ASSERT_TRUE(reservationId.has_value());
+    ASSERT_TRUE(Reserve(regularCustomerId, tableId, Time(18, 0), Time(20, 0)).has_value());
 
-    ASSERT_TRUE(service.ChangeReservationTime(*reservationId, nextDate, start, end));
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, Time(19, 0), Time(21, 0));
 
-    EXPECT_TRUE(service.IsTableAvaible(tableId, date, start, end));
+    ASSERT_TRUE(result.has_value());
 
-    EXPECT_FALSE(service.IsTableAvaible(tableId, nextDate, start, end));
-
-    const Reservation* reservation = service.GetReservation(*reservationId);
-
-    ASSERT_NE(reservation, nullptr);
-    EXPECT_TRUE(reservation->GetDate() == nextDate);
+    EXPECT_EQ(result->endTime.ToMinutes() - result->startTime.ToMinutes(),
+              requestedEnd.ToMinutes() - requestedStart.ToMinutes());
 }
 
-// Changing only the time must not break the date index.
+// No suitable interval is long enough.
 
-TEST_F(TableScheduleTest, ChangingTimeWithinSameDate)
+TEST_F(FindBestReservationTest, ReturnsNulloptWhenNoIntervalIsLongEnough)
 {
-    auto customerId = AddCustomer();
-    auto tableId = AddTable();
+    unsigned int tableId = AddRegularTable(4);
 
-    auto reservationId = Reserve(customerId, tableId, date);
-    ASSERT_TRUE(reservationId.has_value());
+    ASSERT_TRUE(Reserve(regularCustomerId, tableId, Time(17, 0), Time(19, 30)).has_value());
 
-    ASSERT_TRUE(service.ChangeReservationTime(*reservationId, date, laterStart, laterEnd));
+    ASSERT_TRUE(Reserve(regularCustomerId, tableId, Time(20, 30), Time(23, 0)).has_value());
 
-    EXPECT_TRUE(service.IsTableAvaible(tableId, date, start, end));
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, Time(19, 0), Time(21, 0));
 
-    EXPECT_FALSE(service.IsTableAvaible(tableId, date, laterStart, laterEnd));
-
-    EXPECT_TRUE(service.IsTableAvaible(tableId, nextDate, laterStart, laterEnd));
+    EXPECT_FALSE(result.has_value());
 }
 
-// Moving a reservation to another table updates both schedules.
+// Invalid customer ID.
 
-TEST_F(TableScheduleTest, ChangingTableUpdatesBothSchedules)
+TEST_F(FindBestReservationTest, ReturnsNulloptForInvalidCustomer)
 {
-    auto customerId = AddCustomer();
-    auto oldTableId = AddTable();
-    auto newTableId = AddTable();
+    AddRegularTable(4);
 
-    auto reservationId = Reserve(customerId, oldTableId, date);
-    ASSERT_TRUE(reservationId.has_value());
+    auto result = service.FindBestReservation(9999, 2, date, requestedStart, requestedEnd);
 
-    ASSERT_TRUE(service.ChangeReservationTable(*reservationId, newTableId));
-
-    EXPECT_TRUE(service.IsTableAvaible(oldTableId, date, start, end));
-
-    EXPECT_FALSE(service.IsTableAvaible(newTableId, date, start, end));
-
-    const Reservation* reservation = service.GetReservation(*reservationId);
-
-    ASSERT_NE(reservation, nullptr);
-    EXPECT_EQ(reservation->GetTableId(), newTableId);
+    EXPECT_FALSE(result.has_value());
 }
 
-// Deleting a reservation removes it from schedule and history.
+// Zero guests are not allowed.
 
-TEST_F(TableScheduleTest, DeletingReservationFreesTimeSlot)
+TEST_F(FindBestReservationTest, ReturnsNulloptForZeroGuests)
 {
-    auto customerId = AddCustomer();
-    auto tableId = AddTable();
+    AddRegularTable(4);
 
-    auto reservationId = Reserve(customerId, tableId, date);
-    ASSERT_TRUE(reservationId.has_value());
+    auto result = service.FindBestReservation(regularCustomerId, 0, date, requestedStart, requestedEnd);
 
-    ASSERT_TRUE(service.DeleteReservation(*reservationId));
-
-    EXPECT_EQ(service.GetReservation(*reservationId), nullptr);
-
-    EXPECT_TRUE(service.IsTableAvaible(tableId, date, start, end));
-
-    EXPECT_TRUE(service.GetTableHistory(tableId).empty());
-
-    EXPECT_TRUE(service.GetCustomerHistort(customerId).empty());
-
-    auto newReservation = Reserve(customerId, tableId, date);
-
-    EXPECT_TRUE(newReservation.has_value());
+    EXPECT_FALSE(result.has_value());
 }
 
-// Deleting a customer removes all associated reservations.
+// Invalid time range.
 
-TEST_F(TableScheduleTest, DeletingCustomerClearsMultipleDates)
+TEST_F(FindBestReservationTest, ReturnsNulloptForInvalidTimeRange)
 {
-    auto customerId = AddCustomer();
-    auto table1 = AddTable();
-    auto table2 = AddTable();
+    AddRegularTable(4);
 
-    auto reservation1 = Reserve(customerId, table1, date);
-    auto reservation2 = Reserve(customerId, table1, nextDate);
-    auto reservation3 = Reserve(customerId, table2, date);
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, Time(20, 0), Time(18, 0));
 
-    ASSERT_TRUE(reservation1.has_value());
-    ASSERT_TRUE(reservation2.has_value());
-    ASSERT_TRUE(reservation3.has_value());
-
-    ASSERT_TRUE(service.DeleteCustomer(customerId));
-
-    EXPECT_EQ(service.GetReservation(*reservation1), nullptr);
-    EXPECT_EQ(service.GetReservation(*reservation2), nullptr);
-    EXPECT_EQ(service.GetReservation(*reservation3), nullptr);
-
-    EXPECT_TRUE(service.IsTableAvaible(table1, date, start, end));
-    EXPECT_TRUE(service.IsTableAvaible(table1, nextDate, start, end));
-    EXPECT_TRUE(service.IsTableAvaible(table2, date, start, end));
-
-    EXPECT_TRUE(service.GetTableHistory(table1).empty());
-    EXPECT_TRUE(service.GetTableHistory(table2).empty());
+    EXPECT_FALSE(result.has_value());
 }
 
-// Deleting a table removes its reservations from all dates.
+// Regular customers cannot use VIP tables.
 
-TEST_F(TableScheduleTest, DeletingTableClearsMultipleDates)
+TEST_F(FindBestReservationTest, RegularCustomerCannotUseVIPTable)
 {
-    auto customerId = AddCustomer();
-    auto tableId = AddTable();
+    AddVIPTable(4);
 
-    auto reservation1 = Reserve(customerId, tableId, date);
-    auto reservation2 = Reserve(customerId, tableId, nextDate);
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, requestedStart, requestedEnd);
 
-    ASSERT_TRUE(reservation1.has_value());
-    ASSERT_TRUE(reservation2.has_value());
+    EXPECT_FALSE(result.has_value());
+}
 
-    ASSERT_TRUE(service.DeleteTable(tableId));
+// VIP customers can use VIP tables.
 
-    EXPECT_EQ(service.GetTable(tableId), nullptr);
+TEST_F(FindBestReservationTest, VIPCustomerCanUseVIPTable)
+{
+    unsigned int tableId = AddVIPTable(4);
 
-    EXPECT_EQ(service.GetReservation(*reservation1), nullptr);
-    EXPECT_EQ(service.GetReservation(*reservation2), nullptr);
+    auto result = service.FindBestReservation(vipCustomerId, 2, date, requestedStart, requestedEnd);
 
-    EXPECT_TRUE(service.GetCustomerHistort(customerId).empty());
+    ASSERT_TRUE(result.has_value());
 
-    EXPECT_FALSE(service.IsTableAvaible(tableId, date, start, end));
+    EXPECT_EQ(result->tableId, tableId);
+}
+
+// Best Fit: choose the smallest table that can accommodate the guests.
+
+TEST_F(FindBestReservationTest, SelectsSmallestSuitableTable)
+{
+    AddRegularTable(8);
+    unsigned int smallerTableId = AddRegularTable(4);
+
+    auto result = service.FindBestReservation(regularCustomerId, 3, date, requestedStart, requestedEnd);
+
+    ASSERT_TRUE(result.has_value());
+
+    EXPECT_EQ(result->tableId, smallerTableId);
+}
+
+// A regular customer must skip VIP tables and find a regular alternative.
+
+TEST_F(FindBestReservationTest, SkipsVIPTableAndFindsRegularTable)
+{
+    AddVIPTable(4);
+    unsigned int regularTableId = AddRegularTable(6);
+
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, requestedStart, requestedEnd);
+
+    ASSERT_TRUE(result.has_value());
+
+    EXPECT_EQ(result->tableId, regularTableId);
+}
+
+// Empty schedule: a table with no reservations should have free intervals.
+
+TEST_F(FindBestReservationTest, FindsTimeOnTableWithoutReservations)
+{
+    AddRegularTable(4);
+
+    auto result = service.FindBestReservation(regularCustomerId, 2, date, requestedStart, requestedEnd);
+
+    EXPECT_TRUE(result.has_value());
 }

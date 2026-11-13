@@ -65,8 +65,8 @@ bool Reservation::OverlapsWith(const Reservation& r1, const Reservation& r2) { r
 
 unsigned int Reservation::GetDuration() const
 {
-    unsigned int start = _startTime.GetHours() * 60 + _startTime.GetMinutes();
-    unsigned int end = _endTime.GetHours() * 60 + _endTime.GetMinutes();
+    unsigned int start = _startTime.GetMinutes();
+    unsigned int end = _endTime.GetMinutes();
     return end - start;
 }
 

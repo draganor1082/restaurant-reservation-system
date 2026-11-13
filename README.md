@@ -1,3 +1,4 @@
+
 # Restaurant Reservation Management System
 
 A restaurant reservation management system built with **C++20**. The project focuses on reservation scheduling, business rules, efficient table selection, and automated testing.
@@ -15,13 +16,14 @@ A restaurant reservation management system built with **C++20**. The project foc
 - Customer and table reservation histories
 - Automatic cleanup of associated reservations when deleting customers or tables
 - Date-based reservation indexing for faster availability checks
+- Free time interval search for individual tables
+- Alternative reservation time suggestions based on requested duration and table availability
 - Unit tests with GoogleTest and Windows CI with GitHub Actions
 
 ### Planned
 
 - SQLite persistence
 - Console user interface
-- Alternative available time-slot suggestions
 - Additional edge-case tests and Linux build verification
 
 ## Technology Stack
@@ -74,7 +76,7 @@ restaurant-reservation-system/
 `ReservationService` coordinates the main domain models:
 
 - `Customer` — customer details and VIP status
-- `Table` — polymorphic base for regular and VIP tables
+- `Table` — polymorphic base for regular and VIP table types
 - `Reservation` — table, customer, date, time, guest count, and status
 - `Date` / `Time` — scheduling value types
 
@@ -103,6 +105,12 @@ Availability checks examine only reservations for the requested table and date, 
 
 Cancelled reservations are removed from the active schedule but remain in reservation history.
 
+### Free Time Intervals and Reservation Suggestions
+
+`FindFreeIntervals()` calculates available time intervals for a table on a selected date using its reservation schedule.
+
+`FindBestReservation()` searches for a suitable table and available time interval that can accommodate the requested reservation duration. If the requested time is unavailable, it returns an alternative suggestion without creating a reservation.
+
 ### Data Persistence
 
 Data is currently stored in memory. SQLite support is planned.
@@ -115,7 +123,7 @@ Workflow: `.github/workflows/ci.yml`
 
 ## Status
 
-**In Development.** Core reservation management, VIP rules, automatic table selection, and date-based scheduling are implemented. Next priorities: SQLite persistence and a console interface.
+**In Development.** Core reservation management, VIP rules, automatic table selection, date-based scheduling, free time interval search, and alternative reservation suggestions are implemented. Next priorities: SQLite persistence and a console interface.
 
 ## Author
 

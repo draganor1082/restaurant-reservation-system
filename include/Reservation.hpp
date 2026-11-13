@@ -53,7 +53,7 @@ class Reservation
     static unsigned int GetDuration(const Reservation& other);
 
     Reservation& operator=(const Reservation& other) = delete;
-    Reservation(const Reservation& other) = delete;
+    Reservation(const Reservation&) = delete;
 
     friend std::ostream& operator<<(std::ostream& out, const Reservation& r);
 };
