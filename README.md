@@ -61,10 +61,16 @@ ctest --test-dir build -C Debug --output-on-failure
 ```text
 restaurant-reservation-system/
 ├── .github/workflows/    # Windows CI
-├── include/              # Domain models and service interfaces
-│   └── Table/            # Regular and VIP table types
-├── src/                  # Implementations
-│   └── Table/
+├── include/
+│   ├── Models/           # Customer, Reservation, Date, Time
+│   ├── Services/         # ReservationService interface
+│   ├── Table/            # Table, RegularTable, VIPTable interfaces
+│   └── pch.hpp           # Precompiled header
+├── src/
+│   ├── Models/           # Model implementations
+│   ├── Services/         # ReservationService implementation
+│   ├── Table/            # Table implementations
+│   └── main.cpp          # Application entry point
 ├── Tests/                # GoogleTest test suites
 ├── database/             # Reserved for persistence
 ├── CMakeLists.txt
