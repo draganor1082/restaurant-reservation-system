@@ -520,7 +520,7 @@ std::optional<ReservationSuggestion> ReservationService::FindBestReservation(uns
     unsigned int duration = endTime.ToMinutes() - startTime.ToMinutes();
 
     auto suitableTable = FindSuitableTable(customerId, guestCount, date, startTime, endTime);
-    
+
     if (suitableTable.has_value())
     {
         return ReservationSuggestion(suitableTable.value(), date, startTime, endTime);
@@ -570,7 +570,6 @@ std::optional<ReservationSuggestion> ReservationService::FindBestReservation(uns
                                                            Time::FromMinutes(candidateEnd));
                 }
             }
-
         }
     }
     return bestSuggestion;
@@ -696,4 +695,3 @@ std::vector<TimeInterval> ReservationService::FindFreeIntervals(unsigned int tab
 
     return freeIntervals;
 }
-

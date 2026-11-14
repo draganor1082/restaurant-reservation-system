@@ -2,8 +2,8 @@
 #include "Models/Customer.hpp"
 #include "Models/Date.hpp"
 #include "Models/Reservation.hpp"
-#include "Table/Table.hpp"
 #include "Models/Time.hpp"
+#include "Table/Table.hpp"
 
 struct TimeInterval
 {

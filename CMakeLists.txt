@@ -22,7 +22,7 @@ add_executable(restaurant
     "src/Models/Time.cpp"
     "src/Models/Reservation.cpp"
     "src/Models/Date.cpp"
- "src/Services/ReservationService.cpp")
+ "src/Services/ReservationService.cpp" "src/Application/ConsoleApplication.cpp" "include/Application/ConsoleApplication.hpp")
 
 
 target_include_directories(restaurant PRIVATE
@@ -57,7 +57,7 @@ add_executable(restaurant_tests
     "src/Table/Table.cpp"
     "src/Table/RegularTable.cpp"
     "src/Table/VIPTable.cpp"
- "src/Services/ReservationService.cpp")
+ "src/Services/ReservationService.cpp" "src/Application/ConsoleApplication.cpp" "include/Application/ConsoleApplication.hpp")
 
 target_include_directories(restaurant_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"

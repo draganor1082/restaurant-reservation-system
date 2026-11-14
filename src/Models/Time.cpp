@@ -50,15 +50,14 @@ Time::Time(const std::string& time)
 
 unsigned int Time::ToMinutes() const { return _hours * 60 + _minutes; }
 
-Time Time::FromMinutes(unsigned int minutes) 
-{ 
-     if (minutes > 1440)
+Time Time::FromMinutes(unsigned int minutes)
+{
+    if (minutes > 1440)
         throw std::invalid_argument("Invalid time value");
 
     unsigned int _hours = minutes / 60;
     unsigned int _minutes = minutes % 60;
     return Time(_hours, _minutes);
-
 }
 
 bool Time::operator<(const Time& other) const

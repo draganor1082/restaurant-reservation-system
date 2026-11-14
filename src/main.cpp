@@ -1,7 +1,8 @@
-#include "Models/Date.hpp"
-#include "Models/Reservation.hpp"
-#include "Table/RegularTable.hpp"
-#include "Table/VIPTable.hpp"
-#include "Models/Time.hpp"
+#include "Application/ConsoleApplication.hpp"
 
-int main() { return 0; }
+int main()
+{
+    ConsoleApplication app;
+    app.Run();
+    return 0;
+}
