@@ -1,7 +1,7 @@
 
 #include <gtest/gtest.h>
 
-#include "ReservationService.hpp"
+#include "Services/ReservationService.hpp"
 #include "Table/RegularTable.hpp"
 #include "Table/VIPTable.hpp"
 

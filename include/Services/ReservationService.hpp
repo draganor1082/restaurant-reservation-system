@@ -1,9 +1,9 @@
 #pragma once
-#include "Customer.hpp"
-#include "Date.hpp"
-#include "Reservation.hpp"
+#include "Models/Customer.hpp"
+#include "Models/Date.hpp"
+#include "Models/Reservation.hpp"
 #include "Table/Table.hpp"
-#include "Time.hpp"
+#include "Models/Time.hpp"
 
 struct TimeInterval
 {

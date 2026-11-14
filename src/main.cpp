@@ -1,7 +1,7 @@
-#include "Date.hpp"
-#include "Reservation.hpp"
+#include "Models/Date.hpp"
+#include "Models/Reservation.hpp"
 #include "Table/RegularTable.hpp"
 #include "Table/VIPTable.hpp"
-#include "Time.hpp"
+#include "Models/Time.hpp"
 
 int main() { return 0; }

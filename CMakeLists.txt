@@ -7,22 +7,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(restaurant
     src/main.cpp
-    "include/Customer.hpp"
-    "include/Time.hpp"
-    "include/Date.hpp"
+    "include/Models/Customer.hpp"
+    "include/Models/Time.hpp"
+    "include/Models/Date.hpp"
     "include/pch.hpp"
-    "include/Reservation.hpp"
-    "include/ReservationService.hpp"
+    "include/Models/Reservation.hpp"
+    "include/Services/ReservationService.hpp"
     "include/Table/Table.hpp"
     "include/Table/RegularTable.hpp"
     "include/Table/VIPTable.hpp"
     "src/Table/Table.cpp"
     "src/Table/VIPTable.cpp"
     "src/Table/RegularTable.cpp"
-    "src/Time.cpp"
-    "src/Reservation.cpp"
-    "src/Date.cpp"
- "src/ReservationService.cpp")
+    "src/Models/Time.cpp"
+    "src/Models/Reservation.cpp"
+    "src/Models/Date.cpp"
+ "src/Services/ReservationService.cpp")
 
 
 target_include_directories(restaurant PRIVATE
@@ -51,13 +51,13 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(restaurant_tests
     Tests/ReservationTests.cpp
-    src/Reservation.cpp
-    src/Date.cpp
-    src/Time.cpp
-    src/Table/Table.cpp
-    src/Table/RegularTable.cpp
-    src/Table/VIPTable.cpp
- "src/ReservationService.cpp")
+    "src/Models/Reservation.cpp"
+    "src/Models/Date.cpp"
+    "src/Models/Time.cpp"
+    "src/Table/Table.cpp"
+    "src/Table/RegularTable.cpp"
+    "src/Table/VIPTable.cpp"
+ "src/Services/ReservationService.cpp")
 
 target_include_directories(restaurant_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"

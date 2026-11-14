@@ -1,4 +1,4 @@
-#include "Reservation.hpp"
+#include "Models/Reservation.hpp"
 
 Reservation::Reservation(unsigned int customerId, unsigned int tableId, unsigned int guestCount, const Date& date,
                          const Time& startTime, const Time& endTime, ReservationStatus status)
