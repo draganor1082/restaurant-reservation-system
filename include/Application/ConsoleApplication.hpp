@@ -4,9 +4,8 @@
 class ConsoleApplication
 {
    private:
-
     ReservationService _reservationService;
-    
+
     // Application control
     void RunMainMenu();
 
@@ -16,6 +15,12 @@ class ConsoleApplication
     // Customer management
     void ShowCustomersMenu() const;
     void RunCustomersMenu();
+
+    // Customer operations
+    void FindCustomerById();
+    void AddNewCustomer();
+    void ViewCustomerReservations();
+    void DeleteCustomer();
 
     // Table management
     void ShowTablesMenu() const;
@@ -34,9 +39,13 @@ class ConsoleApplication
     void Pause() const;
     void ShowNotImplemented(const std::string& feature) const;
 
+    // Input utilities
+    bool ReadUnsignedInt(const std::string& prompt, unsigned int& value) const;
+    bool ConfirmAction(const std::string& message) const;
+
+    // Display utilities
+    void PrintCustomer(const Customer& customer) const;
+
    public:
-
     void Run();
-
-    
 };

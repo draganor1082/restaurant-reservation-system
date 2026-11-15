@@ -1,4 +1,3 @@
-
 # Restaurant Reservation Management System
 
 A restaurant reservation management system built with **C++20**. The project focuses on reservation scheduling, business rules, efficient table selection, and automated testing.
@@ -18,12 +17,14 @@ A restaurant reservation management system built with **C++20**. The project foc
 - Date-based reservation indexing for faster availability checks
 - Free time interval search for individual tables
 - Alternative reservation time suggestions based on requested duration and table availability
+- Initial console application structure with main and section menus
+- Menu navigation and console clearing for Windows and Unix-like systems
 - Unit tests with GoogleTest and Windows CI with GitHub Actions
 
 ### Planned
 
 - SQLite persistence
-- Console user interface
+- Complete customer, table, and reservation workflows in the console interface
 - Additional edge-case tests and Linux build verification
 
 ## Technology Stack
@@ -62,11 +63,13 @@ ctest --test-dir build -C Debug --output-on-failure
 restaurant-reservation-system/
 ├── .github/workflows/    # Windows CI
 ├── include/
+│   ├── Application/      # ConsoleApplication interface
 │   ├── Models/           # Customer, Reservation, Date, Time
 │   ├── Services/         # ReservationService interface
 │   ├── Table/            # Table, RegularTable, VIPTable interfaces
 │   └── pch.hpp           # Precompiled header
 ├── src/
+│   ├── Application/      # ConsoleApplication implementation
 │   ├── Models/           # Model implementations
 │   ├── Services/         # ReservationService implementation
 │   ├── Table/            # Table implementations
@@ -129,8 +132,9 @@ Workflow: `.github/workflows/ci.yml`
 
 ## Status
 
-**In Development.** Core reservation management, VIP rules, automatic table selection, date-based scheduling, free time interval search, and alternative reservation suggestions are implemented. Next priorities: SQLite persistence and a console interface.
+**In Development.** Core reservation management, VIP rules, automatic table selection, date-based scheduling, free time interval search, and alternative reservation suggestions are implemented. The initial console application structure and menu navigation are in place. Next priorities: complete the customer, table, and reservation workflows, followed by SQLite persistence.
 
 ## Author
 
 **Andrii Nesterenko**
+

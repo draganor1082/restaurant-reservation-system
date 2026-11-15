@@ -1,7 +1,7 @@
 #include "Application/ConsoleApplication.hpp"
 
-void ConsoleApplication::RunMainMenu() 
-{ 
+void ConsoleApplication::RunMainMenu()
+{
     while (true)
     {
         ClearScreen();
@@ -26,7 +26,6 @@ void ConsoleApplication::RunMainMenu()
             Pause();
         }
     }
-
 }
 
 void ConsoleApplication::ShowMainMenu() const
@@ -53,11 +52,8 @@ void ConsoleApplication::ShowCustomersMenu() const
     std::cout << "                CUSTOMER MANAGEMENT\n";
     std::cout << "==================================================\n\n";
 
-    std::cout << "    1. Browse Customers\n";
-    std::cout << "    2. Find Customer by ID\n";
-    std::cout << "    3. Add New Customer\n";
-    std::cout << "    4. View Customer Reservations\n";
-    std::cout << "    5. Delete Customer\n\n";
+    std::cout << "    1. Find Customer by ID\n";
+    std::cout << "    2. Add New Customer\n\n";
 
     std::cout << "    0. Back to Main Menu\n\n";
 
@@ -78,15 +74,9 @@ void ConsoleApplication::RunCustomersMenu()
             return;
 
         if (choice == "1")
-            ShowNotImplemented("Browse Customers");
+            FindCustomerById();
         else if (choice == "2")
-            ShowNotImplemented("Find Customer by ID");
-        else if (choice == "3")
-            ShowNotImplemented("Add New Customer");
-        else if (choice == "4")
-            ShowNotImplemented("View Customer Reservations");
-        else if (choice == "5")
-            ShowNotImplemented("Delete Customer");
+            AddNewCustomer();
         else if (choice == "0")
             return;
         else
@@ -95,6 +85,77 @@ void ConsoleApplication::RunCustomersMenu()
             Pause();
         }
     }
+}
+
+void ConsoleApplication::FindCustomerById()
+{
+    ClearScreen();
+
+    std::cout << "========== FIND CUSTOMER ==========\n\n";
+
+    unsigned int customerId;
+
+    if (!ReadUnsignedInt("Enter customer ID: ", customerId))
+        return;
+
+    const Customer* customer = _reservationService.GetCustomer(customerId);
+
+    if (customer == nullptr)
+    {
+        std::cout << "\nCustomer not found.\n";
+    }
+    else
+    {
+        std::cout << "\nCustomer found:\n\n";
+        PrintCustomer(*customer);
+    }
+
+    Pause();
+}
+
+void ConsoleApplication::AddNewCustomer()
+{
+    ClearScreen();
+
+    std::cout << "========== ADD NEW CUSTOMER ==========\n\n";
+
+    std::string name;
+    std::string phone;
+
+    std::cout << "Enter customer name: ";
+
+    if (!std::getline(std::cin, name))
+        return;
+
+    std::cout << "Enter phone number: ";
+
+    if (!std::getline(std::cin, phone))
+        return;
+
+    if (name.find_first_not_of(" \t") == std::string::npos || phone.find_first_not_of(" \t") == std::string::npos)
+    {
+        std::cout << "\nName and phone number cannot be empty.\n";
+        Pause();
+        return;
+    }
+
+    bool isVIP = ConfirmAction("Is this a VIP customer?");
+
+    Customer customer(name, phone, isVIP);
+
+    unsigned int customerId = customer.GetId();
+
+    if (_reservationService.AddCustomer(customer))
+    {
+        std::cout << "\nCustomer successfully added!\n";
+        std::cout << "Assigned ID: " << customerId << '\n';
+    }
+    else
+    {
+        std::cout << "\nFailed to add customer.\n";
+    }
+
+    Pause();
 }
 
 void ConsoleApplication::RunTablesMenu()
@@ -293,7 +354,54 @@ void ConsoleApplication::ShowNotImplemented(const std::string& feature) const
     Pause();
 }
 
-void ConsoleApplication::Run() 
-{ 
-    RunMainMenu(); 
+bool ConsoleApplication::ReadUnsignedInt(const std::string& prompt, unsigned int& value) const
+{
+    std::cout << prompt;
+
+    std::string input;
+
+    if (!std::getline(std::cin, input))
+        return false;
+
+    auto [ptr, error] = std::from_chars(input.data(), input.data() + input.size(), value);
+
+    if (error != std::errc{} || ptr != input.data() + input.size())
+    {
+        std::cout << "\nInvalid number.\n";
+        Pause();
+        return false;
+    }
+
+    return true;
 }
+
+bool ConsoleApplication::ConfirmAction(const std::string& message) const
+{
+    while (true)
+    {
+        std::cout << message << " (y/n): ";
+
+        std::string choice;
+
+        if (!std::getline(std::cin, choice))
+            return false;
+
+        if (choice == "y" || choice == "Y")
+            return true;
+
+        if (choice == "n" || choice == "N")
+            return false;
+
+        std::cout << "Please enter y or n.\n";
+    }
+}
+
+void ConsoleApplication::PrintCustomer(const Customer& customer) const
+{
+    std::cout << "ID: " << customer.GetId() << '\n';
+    std::cout << "Name: " << customer.GetName() << '\n';
+    std::cout << "Phone: " << customer.GetPhone() << '\n';
+    std::cout << "VIP: " << (customer.IsVIP() ? "Yes" : "No") << '\n';
+}
+
+void ConsoleApplication::Run() { RunMainMenu(); }
